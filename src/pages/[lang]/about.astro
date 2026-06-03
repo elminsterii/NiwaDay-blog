@@ -1,0 +1,48 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import { siteMeta, type Lang } from '../../i18n/ui';
+
+export function getStaticPaths() {
+	return [{ params: { lang: 'zh' } }, { params: { lang: 'en' } }];
+}
+
+const lang = Astro.params.lang as Lang;
+const meta = siteMeta[lang];
+
+const content = {
+	zh: {
+		heading: '關於這個日誌',
+		body: [
+			'這裡記錄 Niwa Day 的開發過程。Niwa Day 是一款 Windows 桌面 app，把今天的 Google 行事曆排成一條浮動的時間軸，安靜地待在桌面上。',
+			'這個日誌的用途是 build in public——分享進度、設計上的取捨，以及一路上的想法。節奏不快，內容也力求簡單清楚。',
+			'有任何關於 Niwa Day 的問題，歡迎來信。',
+		],
+	},
+	en: {
+		heading: 'About this log',
+		body: [
+			'This is the dev log for Niwa Day — a Windows desktop app that lays out today’s Google Calendar as a floating timeline, resting quietly on your desktop.',
+			'The log exists to build in public: sharing progress, design trade-offs, and thoughts along the way. The pace is unhurried, and the notes aim to stay simple and clear.',
+			'Questions about Niwa Day are always welcome by email.',
+		],
+	},
+}[lang];
+---
+
+<!doctype html>
+<html lang={lang}>
+	<head>
+		<BaseHead title={`${content.heading} · ${meta.title}`} description={meta.description} />
+	</head>
+	<body>
+		<Header />
+		<main>
+			<h1>{content.heading}</h1>
+			{content.body.map((p) => <p>{p}</p>)}
+			<p><a href="mailto:elminsterii2@gmail.com">elminsterii2@gmail.com</a></p>
+		</main>
+		<Footer />
+	</body>
+</html>

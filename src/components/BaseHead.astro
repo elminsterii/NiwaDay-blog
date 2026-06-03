@@ -4,8 +4,10 @@
 import '../styles/global.css';
 import type { ImageMetadata } from 'astro';
 import FallbackImage from '../assets/blog-placeholder-1.jpg';
-import { SITE_TITLE } from '../consts';
 import { Font } from 'astro:assets';
+import { getCollection } from 'astro:content';
+import { url, localizedUrl } from '../utils/url';
+import { getLang, siteMeta } from '../i18n/ui';
 
 interface Props {
 	title: string;
@@ -16,26 +18,68 @@ interface Props {
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
 const { title, description, image = FallbackImage } = Astro.props;
+
+const lang = getLang(Astro.currentLocale);
+
+// 解析路徑中語言之後的「其餘部分」，用來產生 hreflang 對應連結
+const baseNoSlash = import.meta.env.BASE_URL.replace(/\/$/, '');
+const cleanPath = Astro.url.pathname.replace(/\/$/, '');
+const rel = cleanPath.startsWith(baseNoSlash) ? cleanPath.slice(baseNoSlash.length) : cleanPath;
+const segs = rel.split('/').filter(Boolean);
+const rest = segs.slice(1).join('/');
+const isLocalized = segs[0] === 'zh' || segs[0] === 'en';
+
+const posts = await getCollection('blog');
+const slugsByLang: Record<string, Set<string>> = {};
+for (const post of posts) {
+	const [l, ...r] = post.id.split('/');
+	(slugsByLang[l] ??= new Set()).add(r.join('/'));
+}
+
+const hreflangCode: Record<string, string> = { zh: 'zh-Hant', en: 'en' };
+
+function pageUrlFor(code: string): string | null {
+	if (!rest) return localizedUrl(code);
+	if (rest === 'about') return localizedUrl(code, 'about');
+	if (slugsByLang[code]?.has(rest)) return localizedUrl(code, rest);
+	return null;
+}
+
+const alternates = isLocalized
+	? (['zh', 'en'] as const)
+			.map((code) => ({ code, href: pageUrlFor(code) }))
+			.filter((a): a is { code: 'zh' | 'en'; href: string } => a.href !== null)
+	: [];
+const xDefault = isLocalized ? (pageUrlFor('zh') ?? pageUrlFor('en')) : null;
 ---
 
 <!-- Global Metadata -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<link rel="icon" href="/favicon.ico" />
-<link rel="sitemap" href="/sitemap-index.xml" />
+<link rel="icon" type="image/svg+xml" href={url('favicon.svg')} />
+<link rel="icon" href={url('favicon.ico')} />
+<link rel="sitemap" href={url('sitemap-index.xml')} />
 <link
 	rel="alternate"
 	type="application/rss+xml"
-	title={SITE_TITLE}
-	href={new URL('rss.xml', Astro.site)}
+	title={siteMeta[lang].title}
+	href={new URL(url(`${lang}/rss.xml`), Astro.site)}
 />
 <meta name="generator" content={Astro.generator} />
 
-<Font cssVariable="--font-atkinson" preload />
+<Font cssVariable="--font-inter" preload />
+<Font cssVariable="--font-noto" />
 
 <!-- Canonical URL -->
 <link rel="canonical" href={canonicalURL} />
+
+<!-- hreflang 語言對應 -->
+{
+	alternates.map((a) => (
+		<link rel="alternate" hreflang={hreflangCode[a.code]} href={new URL(a.href, Astro.site)} />
+	))
+}
+{xDefault && <link rel="alternate" hreflang="x-default" href={new URL(xDefault, Astro.site)} />}
 
 <!-- Primary Meta Tags -->
 <title>{title}</title>
