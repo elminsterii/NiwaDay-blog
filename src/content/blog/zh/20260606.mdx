@@ -1,0 +1,66 @@
+---
+title: 'v1.0.2 以及更多更多的自動化'
+description: '順便聊聊自動化部屬'
+pubDate: 'Jun 06 2026'
+---
+
+關於 v1.0.2，這次修正了在簡單模式下，滑鼠 hover 上去，會看到奇怪的殘影以及閃動。很奇怪的是，在很多桌機上不會發生，在有一些筆電會。
+
+由於我沒有筆電，所以就先推上去，然後看看使用者的回饋。
+
+這次想分享一個東西叫做自動化部屬，也就是自動將新版本 commit 到 store。
+
+除了自動上傳打包的檔案，也要一併更新中英文版本的 release note。
+
+這些都是有辦法一起做自動化的，只要透過 Microsoft Store Submission API（當然是叫 Claude 幹），就可以一次搞定。
+
+首先要先叫 Claude 產生一個 Python script，裡面要定義好流程，例如我的是這樣：
+
+1. Authenticate with Azure AD
+2. Delete any existing pending submission
+3. Create a new submission (cloned from current published)
+4. Update whatsNew (zh-TW + en-US) from release note files
+5. Register new MSIX package
+6. Upload package zip to Azure Blob Storage
+7. Stop — does NOT commit. Review and submit manually in Partner Center.
+
+最後我會要求，我自己按提交，就是最後由人類當關主，把關最後一關。
+
+另外我還搞了一套產生 release note 的自動化程式，哈哈，我是標準的懶人，連 release note 我都不想自己紀錄。
+
+方法也很簡單，透過 git history 的 tag，像這樣：
+
+```
+2026/06/05 (tag v1.0.2)
+
+...something changes
+
+2026/06/03 (tag v1.0.1)
+```
+
+只要在 release 流程中加入這種提示：
+
+> 確認上一版與當下最新的 master 版本的 commit 差異，並分析 commits 訊息，依項目列表製作 release note，並與我討論內容
+
+就會產出一版精美的 release note，像這樣：
+
+```
+Version: v1.0.2
+
+New Features
+- Added primary text color and background color settings in the Visual tab
+- Show full title tooltip on hover for remote calendar events
+
+Improvements
+- Renamed "Background Opacity" to "Overall Opacity" in settings for clearer semantics
+- Revised color palettes for better visibility and range
+- Added outlines to all color swatches; restored original dark background palette option
+
+Bug Fixes
+- Fixed Simple Mode window jitter when moving across monitors
+- Fixed Simple Mode window disappearing on secondary monitors
+- Fixed window overflowing screen bounds on low-resolution displays
+- Fixed whole-day event click not switching to the next event
+```
+
+不錯吧。下次再聊，我如何自動化發布 blog。

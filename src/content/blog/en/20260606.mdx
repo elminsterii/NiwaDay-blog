@@ -1,0 +1,66 @@
+---
+title: "v1.0.2 and So Much More Automation"
+description: "Talking about automated deployment on the side"
+pubDate: 'Jun 06 2026'
+---
+
+For v1.0.2, I fixed a bug in Simple Mode where hovering over the window would cause a weird ghost image and flickering. Oddly enough, it didn't happen on most desktops — only on some laptops.
+
+Since I don't have a laptop myself, I just pushed it and waited to see what users would say.
+
+This time I want to share something called automated deployment — automatically committing new versions to the store.
+
+Besides auto-uploading the packaged files, it also updates the release notes in both Chinese and English at the same time.
+
+All of this can be automated together through the Microsoft Store Submission API (well, I had Claude do it), all in one go.
+
+The first step is to have Claude generate a Python script that defines the whole flow. Mine looks something like this:
+
+1. Authenticate with Azure AD
+2. Delete any existing pending submission
+3. Create a new submission (cloned from current published)
+4. Update whatsNew (zh-TW + en-US) from release note files
+5. Register new MSIX package
+6. Upload package zip to Azure Blob Storage
+7. Stop — does NOT commit. Review and submit manually in Partner Center.
+
+At the end, I require that I'm the one who hits submit — keeping a human as the final gatekeeper.
+
+I also built a separate automation for generating release notes. Haha, I'm the definition of lazy — I didn't even want to write release notes myself.
+
+The method is simple: use git history tags, like this:
+
+```
+2026/06/05 (tag v1.0.2)
+
+...something changes
+
+2026/06/03 (tag v1.0.1)
+```
+
+Just add a prompt like this to the release flow:
+
+> Check the commit diff between the previous version and the current master, analyze the commit messages, and draft a release note as a bullet list — then discuss the content with me.
+
+And it spits out a nicely formatted release note, like this:
+
+```
+Version: v1.0.2
+
+New Features
+- Added primary text color and background color settings in the Visual tab
+- Show full title tooltip on hover for remote calendar events
+
+Improvements
+- Renamed "Background Opacity" to "Overall Opacity" in settings for clearer semantics
+- Revised color palettes for better visibility and range
+- Added outlines to all color swatches; restored original dark background palette option
+
+Bug Fixes
+- Fixed Simple Mode window jitter when moving across monitors
+- Fixed Simple Mode window disappearing on secondary monitors
+- Fixed window overflowing screen bounds on low-resolution displays
+- Fixed whole-day event click not switching to the next event
+```
+
+Pretty neat, right? More on automating blog publishing next time.
